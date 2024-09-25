@@ -15,7 +15,7 @@ export async function POST(req) {
     temperature: 1,
     top_p: 0.95,
     top_k: 64,
-    max_output_tokens: 8192,
+    max_output_tokens: 15000,
     response_mime_type: "text/plain",
 
     },
@@ -47,7 +47,7 @@ Remember, your goal is to facilitate learning through guided discovery, not to l
         role: msg.sender === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }],
       })),
-      generationConfig: { maxOutputTokens: 4000 },
+      generationConfig: { maxOutputTokens: 8000 },
     });
 
     const result = await chat.sendMessage(systemInstruction + "\n\n" + messages[messages.length - 1].content);
