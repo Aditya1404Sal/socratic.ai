@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function Home() {
+export default function Chat() {
   const [prompt, setPrompt] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [previousChats, setPreviousChats] = useState(['Chat 1', 'Chat 2']);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
@@ -15,27 +17,23 @@ export default function Home() {
   }, [chatHistory]);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return; // Prevent sending empty messages
+    if (!prompt.trim()) return;
     setIsLoading(true);
     setError('');
 
-    // Update chat history with user message
     const userMessage = { sender: 'user', content: prompt };
     setChatHistory(prev => [...prev, userMessage]);
 
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...chatHistory, userMessage] }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Update chat history with bot response
         const botMessage = { sender: 'bot', content: data.response };
         setChatHistory(prev => [...prev, botMessage]);
       } else {
@@ -46,37 +44,96 @@ export default function Home() {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
-      setPrompt(''); // Clear input field after sending
+      setPrompt('');
     }
   };
 
   return (
-    <div className="p-4 h-screen w-screen flex flex-col">
-      <h1 className="text-2xl font-bold text-center mb-4">Socratic.AI</h1>
-      <div ref={chatContainerRef} className="overflow-y-auto flex-grow border border-gray-300 rounded-lg p-2 mb-4">
-        {chatHistory.map((msg, index) => (
-          <div key={index} className={`my-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-            <div className={`inline-block p-2 rounded-lg ${msg.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}>
-              {msg.content}
-            </div>
+    <div className="flex h-screen bg-gray-900">
+      {/* Sidebar */}
+      <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 bg-gray-800/50 backdrop-blur-md overflow-hidden`}>
+        <div className="p-4 min-w-[16rem]">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-white font-bold">Previous Chats</h2>
           </div>
-        ))}
-        {isLoading && <div className="text-center text-gray-500">Bot is typing...</div>}
-        {error && <div className="text-center text-red-500">{error}</div>}
+          <div className="space-y-2">
+            {previousChats.map((chat, index) => (
+              <div key={index} className="p-2 hover:bg-gray-700 rounded cursor-pointer text-gray-300">
+                {chat}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <textarea 
-        value={prompt} 
-        onChange={(e) => setPrompt(e.target.value)} 
-        placeholder="Type your message..." 
-        className="border p-2 w-full h-20 rounded-lg"
-      />
-      <button 
-        onClick={handleGenerate} 
-        disabled={isLoading}
-        className="bg-blue-500 text-white p-2 mt-2 w-full rounded-lg disabled:bg-blue-300"
-      >
-        {isLoading ? 'Sending...' : 'Send'}
-      </button>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        <div className="sticky top-0 z-40 backdrop-blur-md bg-gray-900/10 p-4 text-center border-b border-gray-700">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="absolute top-4 left-4 text-white p-2 hover:bg-gray-700 rounded z-50"
+          >
+            ☰
+          </button>
+          <h1 className="text-2xl font-bold text-white">SocraticAI</h1>
+        </div>
+
+        {/* Chat Messages */}
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar"
+        >
+          {chatHistory.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[70%] p-3 rounded-lg ${msg.sender === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-200'
+                  }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="text-center text-gray-400">Bot is typing...</div>
+          )}
+          {error && (
+            <div className="text-center text-red-500">{error}</div>
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="p-4 bg-gray-800">
+          <div className="flex items-end gap-2">
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
+              placeholder="Type your message..."
+              className="flex-1 p-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 resize-none scrollbar-hide overflow-hidden min-h-[48px]"
+              rows="1"
+              style={{ height: '48px' }}
+            />
+
+            <button
+              onClick={handleGenerate}
+              disabled={isLoading}
+              className="px-4 h-[40px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-800 flex-shrink-0"
+            >
+              {isLoading ? 'Sending...' : 'Send'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-);
+  );
 }
