@@ -15,5 +15,17 @@ const config: Config = {
     },
   },
   plugins: [],
+  variants: {
+    extend: {
+      backdropFilter: ['responsive'],
+    },
+  },
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
+  // Enable backdrop filters
+  corePlugins: {
+    backdropFilter: true,
+  },
 };
 export default config;
